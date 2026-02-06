@@ -30,23 +30,23 @@ const channels = [
 
 // Thumbnail images (large images for video thumbnails)
 const thumbnailImages = [
-    'image/image1.png',
-    'image/image2.png',
-    'image/image3.png',
-    'image/image4.png',
-    'image/image5.png',
-    'image/image6.png',
-    'image/image8.png',
-    'image/image9.png',
-    'image/image10.png',
-    'image/image11.png',
+    'image/thumbnail/image1.png',
+    'image/thumbnail/image2.png',
+    'image/thumbnail/image3.png',
+    'image/thumbnail/image4.png',
+    'image/thumbnail/image5.png',
+    'image/thumbnail/image6.png',
+    'image/thumbnail/image8.png',
+    'image/thumbnail/image9.png',
+    'image/thumbnail/image10.png',
+    'image/thumbnail/image11.png',
 ];
 
 // Avatar images (small circular images for channel avatars)
 const avatarImages = [
-    'icon/image1.png',
-    'icon/image2.png',
-    'icon/image3.png'
+    'image/icon/image1.png',
+    'image/icon/image2.png',
+    'image/icon/image3.png'
 ];
 
 // Random image pickers with shuffle algorithm
