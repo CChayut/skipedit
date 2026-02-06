@@ -1,31 +1,36 @@
 # Skip Edit on YouTube (Web Demo)
-Frame-based playback on a captured YouTube homepage (simple web demo)
+Canvas-based playback inside a YouTube-style 4x3 grid (static web demo).
 
 ## Overview
-This is a static web demo that plays pre-rendered frames on a YouTube homepage layout.
+This is a static web page that slices a single MP4 into 12 tiles and plays them on canvas
+elements. The UI is defined in [index.html](index.html) and [style.css](style.css), with
+the behavior in [script.js](script.js).
 
-## Hosting (GitHub Pages / Static Hosting)
-1. Host the [youtubehomepage/](youtubehomepage/) folder as a static site (e.g., GitHub Pages)
-2. Open the hosted page and open the DevTools Console
-3. Copy the code from [play.js](play.js) into the Console and run `startPlayback()`
-4. Click the YouTube frame area to start playback (if applicable)
+## Quick Start (Local)
+1. Put your video at [video_input/input_compressed.mp4](video_input/input_compressed.mp4)
+2. Open [index.html](index.html) in a browser
+3. Click any thumbnail to start playback
 
-> Note: GitHub Pages has no Node runtime. You must generate the frames beforehand.
+> If the video does not load from file://, serve the folder with a simple static server
+> (any local HTTP server is fine) and open the page from http://.
 
-## Generating Frames (first time / when changing video)
-1. Put your input video in [video_input/](video_input/)
-2. Update `input_video` in [config.json](config.json)
-3. Install FFMPEG and Node.js
-4. Run `npm i`
-5. Run `node .` to generate frames
+## Customize Content
+- Thumbnails: [image/thumbnail/](image/thumbnail/)
+- Avatars: [image/icon/](image/icon/)
+- Titles, channels, and meta text: edit arrays in [script.js](script.js)
 
-## Compressed Frames (WebP)
-Use [frame_output_webp/](frame_output_webp/) for smaller file size.
+## Playback Notes
+- The grid is 4x3 (12 tiles) and expects 16:9 thumbnails
+- Autoplay is blocked by browsers; playback starts on click
+- After playback ends, the page regenerates titles and images
 
-## Limitations
-- Requires a YouTube homepage layout with a 4x3 thumbnail grid
-- Playback depends on machine/browser performance
-- Do not minimize/collapse the window during playback; it may cause audio/video desync
+## Optional: Frame Generator (Legacy)
+The Node script in [index.js](index.js) can extract and slice frames using ffmpeg and jimp.
+This is not required for the current MP4-based playback, but kept for experimentation.
+
+## Optional: play.js
+[play.js](play.js) is a small shim that defines `startPlayback()`/`stopPlayback()` if they
+are missing. It is not required when using [index.html](index.html).
 
 ## Disclaimer (Non-Commercial)
 This project is for educational/personal demo purposes only and **is not intended for commercial use**.
