@@ -4,25 +4,25 @@ const loadingOverlay = document.getElementById('loading-overlay');
 const loadingProgress = document.getElementById('loading-progress');
 const loadingHint = document.getElementById('loading-hint');
 
-const FRAME_COUNT = 2763;
-const FRAME_CHECK_BATCH = 12;
+const VID_X = 4;
+const VID_Y = 3;
+const THUMBNAIL_WIDTH = 320;
+const THUMBNAIL_HEIGHT = 240;
+const BASE_CELL_WIDTH = 480;
+const BASE_CELL_HEIGHT = 360;
+const CHANNEL_WIDTH = 40;
+const CHANNEL_HEIGHT = 40;
+const VIDEO_SRC = 'video_input/input_compressed.mp4';
 
-const FILE_PATH = (() => {
-    if (typeof window !== "undefined" && window.location && window.location.protocol !== "file:") {
-        return window.location.origin;
-    }
-    return "file://" + "H:/Justforfun/skipedityoutubepage_main";
-})();
-
-const FRAMEPARTS_BASE_URL = (() => {
-    if (typeof window !== "undefined" && window.location && window.location.protocol === "file:") {
-        return FILE_PATH + "/frame_output_webp/frame_parts";
-    }
-    return "frame_output_webp/frame_parts";
-})();
-
-let __framesReady = false;
+let __videoReady = false;
 let __pendingStart = false;
+let __isPlaying = false;
+let __rafId = null;
+
+const videoElement = document.createElement('video');
+videoElement.src = VIDEO_SRC;
+videoElement.preload = 'auto';
+videoElement.playsInline = true;
 
 // Configuration
 const baseTitles = [
@@ -181,10 +181,12 @@ for (let i = 0; i < 12; i++) {
     
     item.innerHTML = `
         <div class="video-thumbnail-container">
-            <img class="yt-img-shadow" src="${getRandomThumbnail()}" alt="Video ${i}">
+            <img class="yt-img-shadow thumbnail-img" src="${getRandomThumbnail()}" alt="Video ${i}">
+            <canvas class="yt-img-shadow video-canvas" width="${THUMBNAIL_WIDTH}" height="${THUMBNAIL_HEIGHT}"></canvas>
         </div>
         <div class="video-info">
-            <img class="video-channel-avatar" src="${getRandomAvatar()}" alt="Channel Avatar ${i}">
+            <img class="video-channel-avatar avatar-img" src="${getRandomAvatar()}" alt="Channel Avatar ${i}">
+            <canvas class="video-channel-avatar channel-canvas" width="${CHANNEL_WIDTH}" height="${CHANNEL_HEIGHT}"></canvas>
             <div class="video-text">
                 <div class="video-title">${getRandomTitle()}</div>
                 <div class="video-channel">${getRandomChannel()}</div>
@@ -210,13 +212,11 @@ function regenerateContent() {
         const newChannel = getRandomChannel();
         const newViews = getRandomViews();
         const newDaysAgo = getRandomDaysAgo();
-        
-        // Update thumbnail
-        const thumbnailImg = item.querySelector('.yt-img-shadow');
+
+        const thumbnailImg = item.querySelector('.thumbnail-img');
         if (thumbnailImg) thumbnailImg.src = newThumbnail;
-        
-        // Update avatar
-        const avatarImg = item.querySelector('.video-channel-avatar');
+
+        const avatarImg = item.querySelector('.avatar-img');
         if (avatarImg) avatarImg.src = newAvatar;
         
         // Update text content
@@ -269,30 +269,137 @@ function createSnowFall() {
 // Start snowfall
 createSnowFall();
 
+const thumbnailCanvases = Array.from(document.querySelectorAll('.video-canvas'));
+const avatarCanvases = Array.from(document.querySelectorAll('.channel-canvas'));
+const thumbnailImgs = Array.from(document.querySelectorAll('.thumbnail-img'));
+const avatarImgs = Array.from(document.querySelectorAll('.avatar-img'));
+
+thumbnailCanvases.forEach((canvas) => {
+    canvas.style.display = 'none';
+});
+avatarCanvases.forEach((canvas) => {
+    canvas.style.display = 'none';
+});
+
+function renderVideoFrame() {
+    if (!__isPlaying) return;
+    if (videoElement.readyState < 2) {
+        __rafId = requestAnimationFrame(renderVideoFrame);
+        return;
+    }
+
+    const cellWidth = videoElement.videoWidth / VID_X;
+    const cellHeight = videoElement.videoHeight / VID_Y;
+    const channelWidth = cellWidth * (CHANNEL_WIDTH / BASE_CELL_WIDTH);
+    const channelHeight = cellHeight * (CHANNEL_HEIGHT / BASE_CELL_HEIGHT);
+
+    for (let j = 0; j < VID_Y; ++j) {
+        for (let i = 0; i < VID_X; ++i) {
+            const index = (j * VID_X) + i;
+            const thumbCanvas = thumbnailCanvases[index];
+            const avatarCanvas = avatarCanvases[index];
+            const sx = i * cellWidth;
+            const sy = j * cellHeight;
+
+            if (thumbCanvas) {
+                const ctx = thumbCanvas.getContext('2d');
+                ctx.drawImage(
+                    videoElement,
+                    sx,
+                    sy,
+                    cellWidth,
+                    cellHeight,
+                    0,
+                    0,
+                    THUMBNAIL_WIDTH,
+                    THUMBNAIL_HEIGHT
+                );
+            }
+
+            if (avatarCanvas) {
+                const avatarCtx = avatarCanvas.getContext('2d');
+                avatarCtx.drawImage(
+                    videoElement,
+                    sx,
+                    sy + (cellHeight - channelHeight),
+                    channelWidth,
+                    channelHeight,
+                    0,
+                    0,
+                    CHANNEL_WIDTH,
+                    CHANNEL_HEIGHT
+                );
+            }
+        }
+    }
+
+    __rafId = requestAnimationFrame(renderVideoFrame);
+}
+
+function startVideoPlayback() {
+    if (!__videoReady || __isPlaying) return;
+    __isPlaying = true;
+    thumbnailImgs.forEach((img) => {
+        img.style.display = 'none';
+    });
+    avatarImgs.forEach((img) => {
+        img.style.display = 'none';
+    });
+    thumbnailCanvases.forEach((canvas) => {
+        canvas.style.display = 'block';
+    });
+    avatarCanvases.forEach((canvas) => {
+        canvas.style.display = 'block';
+    });
+    videoElement.currentTime = 0;
+    videoElement.play()
+        .then(() => {
+            __rafId = requestAnimationFrame(renderVideoFrame);
+        })
+        .catch(err => {
+            __isPlaying = false;
+            console.error('Video playback failed:', err);
+        });
+}
+
+function stopVideoPlayback() {
+    if (!__isPlaying) return;
+    __isPlaying = false;
+    videoElement.pause();
+    videoElement.currentTime = 0;
+    thumbnailCanvases.forEach((canvas) => {
+        canvas.style.display = 'none';
+    });
+    avatarCanvases.forEach((canvas) => {
+        canvas.style.display = 'none';
+    });
+    thumbnailImgs.forEach((img) => {
+        img.style.display = 'block';
+    });
+    avatarImgs.forEach((img) => {
+        img.style.display = 'block';
+    });
+    if (__rafId) {
+        cancelAnimationFrame(__rafId);
+        __rafId = null;
+    }
+}
+
+window.startPlayback = startVideoPlayback;
+window.stopPlayback = stopVideoPlayback;
+window.resetPlayback = function() {
+    stopVideoPlayback();
+};
+
 // Load play.js on demand and start playback when a thumbnail is clicked
 function loadAndStartPlayer() {
-    if (!__framesReady) {
+    if (!__videoReady) {
         __pendingStart = true;
         if (loadingOverlay) loadingOverlay.classList.remove('hidden');
         return;
     }
     __pendingStart = false;
-    // If already loaded, reset frame and start
-    if (window.startPlayback) {
-        if (window.resetPlayback) window.resetPlayback();
-        window.startPlayback();
-        return;
-    }
-
-    // Inject script tag to load play.js from the same folder
-    const s = document.createElement('script');
-    s.src = 'play.js';
-    s.onload = () => {
-        if (window.resetPlayback) window.resetPlayback();
-        if (window.startPlayback) window.startPlayback();
-    };
-    s.onerror = () => console.error('Failed to load play.js');
-    document.head.appendChild(s);
+    startVideoPlayback();
 }
 
 // Delegate clicks on thumbnails to start player
@@ -302,48 +409,34 @@ container.addEventListener('click', (e) => {
     loadAndStartPlayer();
 });
 
-function loadImage(url) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Failed to load image: ' + url));
-        img.src = url;
-    });
-}
-
-async function ensureAllFramesReady() {
-    for (let start = 1; start <= FRAME_COUNT; start += FRAME_CHECK_BATCH) {
-        const tasks = [];
-        const end = Math.min(start + FRAME_CHECK_BATCH - 1, FRAME_COUNT);
-        for (let frameIndex = start; frameIndex <= end; ++frameIndex) {
-            const channel_path = FRAMEPARTS_BASE_URL + '/' + frameIndex + '/0,0channel.webp';
-            const thumbnail_path = FRAMEPARTS_BASE_URL + '/' + frameIndex + '/0,0thumb.webp';
-            tasks.push(loadImage(channel_path), loadImage(thumbnail_path));
-        }
-        await Promise.all(tasks);
-        const progress = Math.floor((end / FRAME_COUNT) * 100);
-        if (loadingProgress) loadingProgress.textContent = progress + '%';
-    }
-}
-
-async function precheckFramesOnLoad() {
+function precheckVideoOnLoad() {
     if (loadingOverlay) loadingOverlay.classList.remove('hidden');
-    if (loadingHint) loadingHint.textContent = 'Checking frame files';
-
-    try {
-        await ensureAllFramesReady();
-        __framesReady = true;
-        if (loadingHint) loadingHint.textContent = 'Ready';
-        if (loadingOverlay) loadingOverlay.classList.add('hidden');
-        if (__pendingStart) {
-            loadAndStartPlayer();
-        }
-    } catch (err) {
-        __framesReady = false;
-        if (loadingHint) loadingHint.textContent = 'Missing frame files';
-        console.error('Frame precheck failed:', err);
-    }
+    if (loadingHint) loadingHint.textContent = 'Loading video';
+    if (loadingProgress) loadingProgress.textContent = '0%';
 }
 
-precheckFramesOnLoad();
+videoElement.addEventListener('loadedmetadata', () => {
+    __videoReady = true;
+    if (loadingHint) loadingHint.textContent = 'Ready';
+    if (loadingProgress) loadingProgress.textContent = '100%';
+    if (loadingOverlay) loadingOverlay.classList.add('hidden');
+    if (__pendingStart) {
+        loadAndStartPlayer();
+    }
+});
+
+videoElement.addEventListener('error', () => {
+    __videoReady = false;
+    if (loadingHint) loadingHint.textContent = 'Video failed to load';
+    console.error('Video failed to load:', videoElement.error);
+});
+
+videoElement.addEventListener('ended', () => {
+    stopVideoPlayback();
+    if (window.onPlaybackComplete) {
+        window.onPlaybackComplete();
+    }
+});
+
+precheckVideoOnLoad();
 
