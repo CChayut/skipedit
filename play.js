@@ -13,7 +13,19 @@ let frame = 0;
 const thumbnailImgs = document.querySelectorAll(".video-thumbnail-container .yt-img-shadow");
 const profileImgs = document.querySelectorAll(".video-channel-avatar");
 
-const FILE_PATH = "file://" + "H:/Justforfun/skipedityoutubepage_main";
+const FILE_PATH = (() => {
+    if (typeof window !== "undefined" && window.FRAME_BASE_PATH) {
+        return window.FRAME_BASE_PATH.replace(/\/$/, "");
+    }
+
+    if (typeof window !== "undefined" && window.location && window.location.protocol !== "file:") {
+        const url = new URL(window.location.href);
+        const rootPath = url.pathname.replace(/\/youtubehomepage\/.*$/, "");
+        return url.origin + rootPath;
+    }
+
+    return "file://" + "H:/Justforfun/skipedityoutubepage_main";
+})();
 
 // Audio element for playback
 let audioElement = null;
