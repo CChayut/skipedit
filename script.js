@@ -255,9 +255,9 @@ function loadAndStartPlayer() {
         return;
     }
 
-    // Inject script tag to load ../play.js
+    // Inject script tag to load play.js from the same folder
     const s = document.createElement('script');
-    s.src = '../play.js';
+    s.src = 'play.js';
     s.onload = () => {
         if (window.resetPlayback) window.resetPlayback();
         if (window.startPlayback) window.startPlayback();

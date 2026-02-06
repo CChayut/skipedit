@@ -14,18 +14,19 @@ const thumbnailImgs = document.querySelectorAll(".video-thumbnail-container .yt-
 const profileImgs = document.querySelectorAll(".video-channel-avatar");
 
 const FILE_PATH = (() => {
-    if (typeof window !== "undefined" && window.FRAME_BASE_PATH) {
-        return window.FRAME_BASE_PATH.replace(/\/$/, "");
-    }
-
     if (typeof window !== "undefined" && window.location && window.location.protocol !== "file:") {
-        const url = new URL(window.location.href);
-        const rootPath = url.pathname.replace(/\/youtubehomepage\/.*$/, "");
-        return url.origin + rootPath;
+        return window.location.origin;
     }
-
     return "file://" + "H:/Justforfun/skipedityoutubepage_main";
 })();
+
+const FRAMEPARTS_BASE_URL = (() => {
+    if (typeof window !== "undefined" && window.location && window.location.protocol === "file:") {
+        return FILE_PATH + "/frame_output_webp/frame_parts";
+    }
+    return "frame_output_webp/frame_parts";
+})();
+
 
 // Audio element for playback
 let audioElement = null;
@@ -40,6 +41,8 @@ function initAudio() {
 
 // Playback control (exposed on window)
 let __playInterval = null;
+let __startTime = 0;
+let __useAudioSync = true;
 
 window.startPlayback = function() {
     if (__playInterval) return; // already running
@@ -47,7 +50,15 @@ window.startPlayback = function() {
     // Initialize and play audio
     initAudio();
     audioElement.currentTime = 0;
-    audioElement.play().catch(err => console.error('Audio playback failed:', err));
+    update_frame();
+
+    __startTime = performance.now();
+    audioElement.play()
+        .then(() => { __useAudioSync = true; })
+        .catch(err => {
+            __useAudioSync = false;
+            console.error('Audio playback failed:', err);
+        });
 
     __playInterval = requestAnimationFrame(playbackLoop);
 };
@@ -66,25 +77,22 @@ window.stopPlayback = function() {
 };
 
 function playbackLoop(currentTime) {
-    if (audioElement) {
-        const targetFrame = Math.min(
-            Math.floor(audioElement.currentTime * FRAMERATE),
-            FRAME_COUNT - 1
-        );
+    const targetFrame = (__useAudioSync && audioElement && !audioElement.paused)
+        ? Math.min(Math.floor(audioElement.currentTime * FRAMERATE), FRAME_COUNT - 1)
+        : Math.min(Math.floor((currentTime - __startTime) / FRAME_INTERVAL), FRAME_COUNT - 1);
 
-        if (targetFrame !== frame) {
-            frame = targetFrame;
-            update_frame();
-        }
+    if (targetFrame !== frame) {
+        frame = targetFrame;
+        update_frame();
+    }
 
-        if (audioElement.ended || frame >= FRAME_COUNT - 1) {
-            frame = 0;
-            window.stopPlayback();
-            if (window.onPlaybackComplete) {
-                window.onPlaybackComplete();
-            }
-            return;
+    if ((audioElement && audioElement.ended) || frame >= FRAME_COUNT - 1) {
+        frame = 0;
+        window.stopPlayback();
+        if (window.onPlaybackComplete) {
+            window.onPlaybackComplete();
         }
+        return;
     }
     if (__playInterval) {
         __playInterval = requestAnimationFrame(playbackLoop);
@@ -101,8 +109,8 @@ function update_frame()
     {
         for(let j = 0; j < VID_Y; ++j)
         {
-            const channel_path =  FILE_PATH + "/frame_output_webp/frame_parts/" + (frame + 1) + "/" + j + "," + i + "channel.webp";
-            const thumbnail_path = FILE_PATH + "/frame_output_webp/frame_parts/" + (frame + 1) + "/" + j + "," + i + "thumb.webp";
+            const channel_path =  FRAMEPARTS_BASE_URL + "/" + (frame + 1) + "/" + j + "," + i + "channel.webp";
+            const thumbnail_path = FRAMEPARTS_BASE_URL + "/" + (frame + 1) + "/" + j + "," + i + "thumb.webp";
         
             const index = (j * VID_X) + i;
             
