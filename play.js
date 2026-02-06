@@ -1,3 +1,4 @@
+(() => {
 const VID_X = 4;
 const VID_Y = 3;
 
@@ -143,3 +144,4 @@ function play_video()
 
 // also expose current frame for external control
 window.getPlaybackFrame = function() { return frame; };
+})();

@@ -1,5 +1,28 @@
 // Generate 12 mock video items (4x3 grid)
 const container = document.getElementById('video-container');
+const loadingOverlay = document.getElementById('loading-overlay');
+const loadingProgress = document.getElementById('loading-progress');
+const loadingHint = document.getElementById('loading-hint');
+
+const FRAME_COUNT = 2763;
+const FRAME_CHECK_BATCH = 12;
+
+const FILE_PATH = (() => {
+    if (typeof window !== "undefined" && window.location && window.location.protocol !== "file:") {
+        return window.location.origin;
+    }
+    return "file://" + "H:/Justforfun/skipedityoutubepage_main";
+})();
+
+const FRAMEPARTS_BASE_URL = (() => {
+    if (typeof window !== "undefined" && window.location && window.location.protocol === "file:") {
+        return FILE_PATH + "/frame_output_webp/frame_parts";
+    }
+    return "frame_output_webp/frame_parts";
+})();
+
+let __framesReady = false;
+let __pendingStart = false;
 
 // Configuration
 const baseTitles = [
@@ -248,6 +271,12 @@ createSnowFall();
 
 // Load play.js on demand and start playback when a thumbnail is clicked
 function loadAndStartPlayer() {
+    if (!__framesReady) {
+        __pendingStart = true;
+        if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+        return;
+    }
+    __pendingStart = false;
     // If already loaded, reset frame and start
     if (window.startPlayback) {
         if (window.resetPlayback) window.resetPlayback();
@@ -272,4 +301,49 @@ container.addEventListener('click', (e) => {
     if (!thumb) return;
     loadAndStartPlayer();
 });
+
+function loadImage(url) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Failed to load image: ' + url));
+        img.src = url;
+    });
+}
+
+async function ensureAllFramesReady() {
+    for (let start = 1; start <= FRAME_COUNT; start += FRAME_CHECK_BATCH) {
+        const tasks = [];
+        const end = Math.min(start + FRAME_CHECK_BATCH - 1, FRAME_COUNT);
+        for (let frameIndex = start; frameIndex <= end; ++frameIndex) {
+            const channel_path = FRAMEPARTS_BASE_URL + '/' + frameIndex + '/0,0channel.webp';
+            const thumbnail_path = FRAMEPARTS_BASE_URL + '/' + frameIndex + '/0,0thumb.webp';
+            tasks.push(loadImage(channel_path), loadImage(thumbnail_path));
+        }
+        await Promise.all(tasks);
+        const progress = Math.floor((end / FRAME_COUNT) * 100);
+        if (loadingProgress) loadingProgress.textContent = progress + '%';
+    }
+}
+
+async function precheckFramesOnLoad() {
+    if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+    if (loadingHint) loadingHint.textContent = 'Checking frame files';
+
+    try {
+        await ensureAllFramesReady();
+        __framesReady = true;
+        if (loadingHint) loadingHint.textContent = 'Ready';
+        if (loadingOverlay) loadingOverlay.classList.add('hidden');
+        if (__pendingStart) {
+            loadAndStartPlayer();
+        }
+    } catch (err) {
+        __framesReady = false;
+        if (loadingHint) loadingHint.textContent = 'Missing frame files';
+        console.error('Frame precheck failed:', err);
+    }
+}
+
+precheckFramesOnLoad();
 

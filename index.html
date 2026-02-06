@@ -7,6 +7,13 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="loading-overlay" class="loading-overlay" aria-live="polite">
+        <div class="loading-card">
+            <div class="loading-title">Loading frames...</div>
+            <div class="loading-progress" id="loading-progress">0%</div>
+            <div class="loading-hint" id="loading-hint">Checking frame files</div>
+        </div>
+    </div>
     <!-- Video Grid -->
     <div class="container">
         <div class="video-grid" id="video-container">
