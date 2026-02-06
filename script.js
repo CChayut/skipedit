@@ -30,23 +30,23 @@ const channels = [
 
 // Thumbnail images (large images for video thumbnails)
 const thumbnailImages = [
-    'file:///H:/my%20husband%20scott/bgpc/image1.png',
-    'file:///H:/my%20husband%20scott/bgpc/image2.png',
-    'file:///H:/my%20husband%20scott/bgpc/image3.png',
-    'file:///H:/my%20husband%20scott/bgpc/image4.png',
-    'file:///H:/my%20husband%20scott/bgpc/image5.png',
-    'file:///H:/my%20husband%20scott/bgpc/image6.png',
-    'file:///H:/my%20husband%20scott/bgpc/image8.png',
-    'file:///H:/my%20husband%20scott/bgpc/image9.png',
-    'file:///H:/my%20husband%20scott/bgpc/image10.png',
-    'file:///H:/my%20husband%20scott/bgpc/image11.png',
+    'image/image1.png',
+    'image/image2.png',
+    'image/image3.png',
+    'image/image4.png',
+    'image/image5.png',
+    'image/image6.png',
+    'image/image8.png',
+    'image/image9.png',
+    'image/image10.png',
+    'image/image11.png',
 ];
 
 // Avatar images (small circular images for channel avatars)
 const avatarImages = [
-    'file:///H:/my%20husband%20scott/editimage/image1.png',
-    'file:///H:/my%20husband%20scott/editimage/image2.png',
-    'file:///H:/my%20husband%20scott/editimage/image3.png'
+    'icon/image1.png',
+    'icon/image2.png',
+    'icon/image3.png'
 ];
 
 // Random image pickers with shuffle algorithm
